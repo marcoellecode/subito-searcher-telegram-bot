@@ -25,20 +25,36 @@ Lo script legge e scrive nella cartella da cui viene avviato:
 
 Nessuno dei due va messo nel repository.
 
+In alternativa al file si possono usare le variabili d'ambiente `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`: se impostate hanno la precedenza e al primo avvio creano (o aggiornano) `telegram_api_credentials`.
+
+## Immagine Docker
+
+Ad ogni push su `main` che tocca `app.py`, `requirements.txt` o `Dockerfile`, GitHub Actions pubblica l'immagine (amd64 e arm64):
+
+```
+ghcr.io/marcoellecode/subito-searcher-telegram-bot:latest
+```
+
+Un tag `vX.Y.Z` pubblica anche l'immagine con quella versione.
+
+## Avvio con CasaOS
+
+1. App Store → **+** (in alto a destra) → **Install a customized app** → **Import**.
+2. Incolla il contenuto di [`docker-compose.casaos.yml`](docker-compose.casaos.yml).
+3. Compila `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` e premi **Install**.
+
+I dati finiscono in `/DATA/AppData/subito-searcher/bindata/`: per riusare ricerche esistenti copia lì `searches.tracked`.
+Per aggiornare l'app basta ricaricare l'immagine `latest` da CasaOS (o ricrearla).
+
 ## Avvio con Docker
 
 ```bash
 mkdir bindata
-# copia telegram_api_credentials (ed eventualmente searches.tracked) in bindata/
-docker compose up -d --build
+# copia in bindata/ telegram_api_credentials (oppure imposta TELEGRAM_TOKEN e TELEGRAM_CHAT_ID)
+docker compose up -d            # usa l'immagine pubblicata
+docker compose up -d --build    # oppure la costruisce in locale
 docker compose logs -f
 ```
-
-## Avvio con CasaOS
-
-1. Copia il progetto in `/DATA/AppData/subito-searcher/` e i file di dati in `/DATA/AppData/subito-searcher/bindata/`.
-2. Costruisci l'immagine: `sudo docker build -t subito-searcher:latest .`
-3. In CasaOS: App Store → **+** → **Install a customized app** → **Import**, incolla `docker-compose.casaos.yml`.
 
 ## Avvio senza Docker
 

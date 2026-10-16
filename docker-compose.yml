@@ -1,11 +1,15 @@
 services:
   subito-searcher:
+    # immagine pubblicata dal workflow GitHub; per costruirla in locale: docker compose up -d --build
+    image: ghcr.io/marcoellecode/subito-searcher-telegram-bot:latest
     build: .
-    image: subito-searcher:latest
     container_name: subito-searcher
     restart: unless-stopped
     environment:
       - TZ=Europe/Rome
+      # opzionali: se impostate creano/aggiornano bindata/telegram_api_credentials
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
     volumes:
       # qui vanno searches.tracked e telegram_api_credentials
       - ./bindata:/data

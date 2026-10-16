@@ -1,17 +1,17 @@
 name: subito-searcher
 services:
   subito-searcher:
-    # immagine costruita in locale sul server con: docker build -t subito-searcher:latest .
-    image: subito-searcher:latest
-    pull_policy: never
+    image: ghcr.io/marcoellecode/subito-searcher-telegram-bot:latest
     container_name: subito-searcher
     restart: unless-stopped
     environment:
-      - TZ=Europe/Rome
+      TZ: Europe/Rome
+      # al primo avvio creano bindata/telegram_api_credentials (e lo aggiornano se cambiano)
+      TELEGRAM_TOKEN: ""
+      TELEGRAM_CHAT_ID: ""
     volumes:
-      - type: bind
-        source: /DATA/AppData/subito-searcher/bindata
-        target: /data
+      # la cartella viene creata automaticamente se non esiste
+      - /DATA/AppData/subito-searcher/bindata:/data
     stdin_open: true
     logging:
       driver: json-file
@@ -19,6 +19,16 @@ services:
         max-size: "10m"
         max-file: "3"
     x-casaos:
+      envs:
+        - container: TELEGRAM_TOKEN
+          description:
+            en_us: Telegram bot token (from @BotFather)
+        - container: TELEGRAM_CHAT_ID
+          description:
+            en_us: Telegram chat id that receives the listings
+        - container: TZ
+          description:
+            en_us: Time zone
       volumes:
         - container: /data
           description:
@@ -28,8 +38,8 @@ x-casaos:
     - amd64
     - arm64
   main: subito-searcher
-  author: self
-  developer: self
+  author: marcoellecode
+  developer: marcoellecode
   category: Utilities
   title:
     en_us: Subito Searcher
@@ -37,3 +47,4 @@ x-casaos:
     en_us: Telegram bot for subito.it searches
   description:
     en_us: Polls saved subito.it searches and sends new listings to Telegram.
+  project_url: https://github.com/marcoellecode/subito-searcher-telegram-bot

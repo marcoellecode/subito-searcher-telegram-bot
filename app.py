@@ -66,11 +66,24 @@ def load_api_credentials():
     '''A function to load the telegram api credentials from the json file'''
     global apiCredentials
     global telegramApiFile
-    if not os.path.isfile(telegramApiFile):
+
+    # se impostate, le variabili d'ambiente (es. da CasaOS) hanno la precedenza e aggiornano il file
+    envToken = os.environ.get("TELEGRAM_TOKEN", "").strip()
+    envChatId = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if envToken and envChatId:
+        apiCredentials = {"token": envToken, "chatid": envChatId}
+        with open(telegramApiFile, 'w') as file:
+            file.write(json.dumps(apiCredentials, indent=4))
         return
 
-    with open(telegramApiFile) as file:
-        apiCredentials = json.load(file)
+    if os.path.isfile(telegramApiFile):
+        with open(telegramApiFile) as file:
+            apiCredentials = json.load(file)
+
+    if not apiCredentials.get("token") or not apiCredentials.get("chatid"):
+        print("Missing Telegram credentials: set TELEGRAM_TOKEN and TELEGRAM_CHAT_ID "
+              "or create the file '" + telegramApiFile + "'.")
+        sys.exit(1)
 
 #-------------------------------------
 # load queries from file
