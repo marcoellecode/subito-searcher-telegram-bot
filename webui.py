@@ -23,7 +23,7 @@ import threading
 from datetime import datetime
 from html import unescape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs, quote_plus
+from urllib.parse import parse_qs, quote_plus
 
 app = None  # modulo di app.py, impostato da start()
 
@@ -226,26 +226,33 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self, data, status=200):
         self.send_body(json.dumps(data).encode("utf-8"), "application/json; charset=utf-8", status)
 
+    def split_path(self):
+        '''Percorso normalizzato e query: "//" o "//api/x" (es. link di CasaOS) diventano "/" e "/api/x"'''
+        rawPath, _, query = self.path.partition("?")
+        return "/" + rawPath.lstrip("/"), query
+
     def do_GET(self):
         if not self.check_access():
             return
-        parsed = urlparse(self.path)
+        path, query = self.split_path()
         try:
-            if parsed.path == "/":
-                self.send_body(PAGE.encode("utf-8"), "text/html; charset=utf-8")
-            elif parsed.path == "/api/status":
+            if path == "/api/status":
                 self.send_json(get_status())
-            elif parsed.path == "/api/searches":
+            elif path == "/api/searches":
                 self.send_json(get_searches())
-            elif parsed.path == "/api/items":
-                name = parse_qs(parsed.query).get("name", [""])[0]
+            elif path == "/api/items":
+                name = parse_qs(query).get("name", [""])[0]
                 self.send_json(get_items(name))
-            else:
+            elif path.startswith("/api/"):
+                print("[WEBUI] unknown API path " + self.path)
                 self.send_json({"error": "Non trovato."}, 404)
+            else:
+                # qualsiasi altro percorso mostra la pagina
+                self.send_body(PAGE.encode("utf-8"), "text/html; charset=utf-8")
         except LookupError as e:
             self.send_json({"error": str(e)}, 404)
         except Exception as e:
-            print("[WEBUI] error on GET " + parsed.path + ": " + str(e))
+            print("[WEBUI] error on GET " + path + ": " + str(e))
             self.send_json({"error": "Errore interno: " + str(e)}, 500)
 
     def do_POST(self):
@@ -263,8 +270,9 @@ class Handler(BaseHTTPRequestHandler):
             "/api/pause": lambda data: pause(),
             "/api/resume": lambda data: resume(),
         }
-        action = actions.get(self.path)
+        action = actions.get(self.split_path()[0])
         if action is None:
+            print("[WEBUI] unknown API path " + self.path)
             self.send_json({"error": "Non trovato."}, 404)
             return
         try:
