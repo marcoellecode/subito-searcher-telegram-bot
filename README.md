@@ -66,7 +66,17 @@ L'immagine viene pubblicata su GitHub Container Registry, quindi l'installazione
 3. Nella sezione delle variabili d'ambiente compila:
    - `TELEGRAM_TOKEN`: il token di BotFather
    - `TELEGRAM_CHAT_ID`: il chat id
-4. Premi **Install**.
+4. Controlla le porte (il compose le imposta già):
+
+   | Campo nelle impostazioni dell'app | Valore |
+   |---|---|
+   | **Web UI** (porta del pulsante Apri) | `8095` |
+   | **Ports → Host** | `8095` |
+   | **Ports → Container** | `8080` |
+   | **Protocollo** | TCP |
+
+   `8080` è la porta interna del container e non va cambiata; `8095` puoi sostituirla con un'altra porta libera del server, ma va cambiata uguale anche nel campo Web UI.
+5. Premi **Install**.
 
 Il bot parte, crea la cartella dati `/DATA/AppData/subito-searcher/bindata/` e ti risponde su Telegram: invia `/help` per verificarlo.
 Il pulsante **Apri** dell'app nella dashboard porta all'[interfaccia web](#interfaccia-web) (`http://<ip-del-server>:8095`).
@@ -257,7 +267,11 @@ Il bot ti avvisa anche quando subito.it attiva la protezione anti-bot e quando u
 Una pagina web per gestire il bot dal browser, da PC o da telefono, senza passare da Telegram.
 Gira nello stesso container e nello stesso processo del bot e lavora sugli **stessi dati**: una ricerca aggiunta dal web compare subito in `/list` su Telegram, e viceversa.
 
-Indirizzo: `http://<ip-del-server>:8095` (in CasaOS: pulsante **Apri** dell'app).
+Indirizzo: `http://<ip-del-server>:8095` (in CasaOS: pulsante **Apri** dell'app). Qualsiasi percorso diverso da `/api/...` apre la pagina, quindi funzionano anche i link generati da CasaOS.
+
+### Accesso da fuori casa
+
+Collegati alla rete di casa con una **VPN** (WireGuard sul router, Tailscale con subnet router e simili) e apri lo stesso indirizzo locale, es. `http://192.168.1.230:8095`: il traffico arriva al server da un indirizzo della rete locale e la pagina funziona come da casa.
 
 ### Cosa puoi fare
 
@@ -275,6 +289,7 @@ Indirizzo: `http://<ip-del-server>:8095` (in CasaOS: pulsante **Apri** dell'app)
 
 - La pagina risponde **solo a indirizzi di rete locale** (192.168.x.x, 10.x.x.x, 172.16-31.x.x, localhost e gli equivalenti IPv6). Le richieste da indirizzi pubblici ricevono un errore 403 e finiscono nei log come `[WEBUI] refused connection`.
 - Con `WEBUI_PASSWORD` il browser chiede una password (utente qualsiasi). È consigliata se in rete locale ci sono dispositivi o persone di cui non ti fidi.
+- **Non aprire la porta `8095` sul router** (port forwarding): a seconda di come Docker inoltra le connessioni (ad esempio via IPv6), il container può vedere le richieste esterne come provenienti dalla rete interna di Docker, e il controllo sulla rete locale non basterebbe.
 - **Non pubblicarla su Internet tramite un reverse proxy** (Nginx Proxy Manager, Cloudflare Tunnel e simili): il proxy si collega da un indirizzo locale e il controllo sulla rete verrebbe aggirato. Se proprio ti serve, imposta almeno `WEBUI_PASSWORD` e usa HTTPS sul proxy. Per l'accesso da fuori casa è meglio una VPN.
 - Le operazioni che modificano i dati accettano solo richieste JSON, quindi un altro sito aperto nel browser non può inviarle al posto tuo.
 
@@ -316,7 +331,17 @@ Se i blocchi si ripetono, riduci il numero di ricerche o aumenta `pollDelay` e `
 
 ## Aggiornamento
 
-**CasaOS**: dal menu dell'app (⋮) scegli **Check then update**, oppure reinstallala: i dati in `bindata` restano.
+L'immagine viene costruita da GitHub Actions a ogni modifica: sul server non serve compilare nulla, basta scaricare la nuova `latest`.
+
+**CasaOS**: dal menu dell'app (⋮) scegli **Check then update**. Se la tua versione di CasaOS non ha questa voce, scarica l'immagine da terminale e poi riavvia l'app dalla dashboard:
+
+```bash
+sudo docker pull ghcr.io/marcoellecode/subito-searcher-telegram-bot:latest
+```
+
+Salvare le impostazioni dell'app ricrea il container, ma non sempre scarica l'immagine nuova: usa uno dei due metodi sopra. In ogni caso i dati in `bindata` restano.
+
+**Installazione CasaOS precedente all'interfaccia web**: l'app non ha la porta configurata. Dopo aver aggiornato l'immagine, nelle impostazioni dell'app aggiungi la porta **Host `8095` → Container `8080`** (TCP) e imposta `8095` nel campo **Web UI**; in alternativa reinstalla l'app importando di nuovo [`docker-compose.casaos.yml`](docker-compose.casaos.yml) (ricompila le variabili d'ambiente).
 
 **Docker Compose**:
 
@@ -351,6 +376,7 @@ Per spostare il bot su un altro server basta copiare `searches.tracked`.
 | `JSON path not found` nei log | subito.it ha cambiato la struttura della pagina: lo scraper va aggiornato (`run_query` in `app.py`). |
 | CasaOS: `pull access denied` | Il nome dell'immagine è sbagliato o il pacchetto su GHCR non è pubblico. |
 | L'interfaccia web non si apre | Controlla la porta (`8095`) e che nei log ci sia `Web UI running on port 8080`. Se nei log compare `Web UI not started`, la porta interna è occupata: cambia `WEBUI_PORT`. |
+| L'interfaccia web risponde `{"error": "Non trovato."}` | Versione dell'immagine precedente alla correzione dei percorsi (il pulsante Apri di CasaOS poteva aprire `//`): [aggiorna l'immagine](#aggiornamento). |
 | L'interfaccia web risponde "Accesso consentito solo dalla rete locale" | Ti stai collegando da un indirizzo pubblico (da fuori casa o tramite un proxy): usa la rete locale o una VPN. |
 | Il container si chiude con `InvalidToken` o `Unauthorized` | Token sbagliato o revocato: controllalo, o generane uno nuovo con BotFather (`/token`). |
 
