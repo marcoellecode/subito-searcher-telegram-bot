@@ -10,6 +10,11 @@ services:
       # opzionali: se impostate creano/aggiornano bindata/telegram_api_credentials
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      # facoltativa: password dell'interfaccia web (utente qualsiasi)
+      - WEBUI_PASSWORD=${WEBUI_PASSWORD:-}
+    ports:
+      # interfaccia web, raggiungibile solo dalla rete locale
+      - "8095:8080"
     volumes:
       # qui vanno searches.tracked e telegram_api_credentials
       - ./bindata:/data

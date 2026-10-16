@@ -1039,4 +1039,8 @@ if __name__ == "__main__":
     thread = threading.Thread(target=background_task, daemon=True)
     thread.start()
 
+    # interfaccia web per la rete locale (webui.py), stesso processo e stessi dati
+    import webui
+    webui.start(sys.modules[__name__])
+
     main()

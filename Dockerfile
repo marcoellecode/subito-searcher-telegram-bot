@@ -12,7 +12,10 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-COPY app.py .
+COPY app.py webui.py ./
+
+# interfaccia web (webui.py)
+EXPOSE 8080
 
 # app.py legge e scrive searches.tracked e telegram_api_credentials nella cartella corrente:
 # lavorando in /data quei file finiscono nel volume montato

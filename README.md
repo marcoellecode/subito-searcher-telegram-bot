@@ -7,6 +7,7 @@ Le ricerche si aggiungono, consultano ed eliminano direttamente dalla chat.
 - Filtro per **prezzo minimo e massimo**
 - **Notifiche** con titolo, prezzo, località e link all'annuncio
 - Procedura guidata, pulsanti e menu dei comandi su Telegram
+- **Interfaccia web** per la rete locale: stato dei controlli, aggiunta, modifica ed eliminazione delle ricerche
 - Rimozione automatica degli annunci venduti
 - Protezione dal blocco **anti-bot** di subito.it (DataDome)
 - Immagine Docker pronta per **CasaOS**, amd64 e arm64
@@ -22,12 +23,13 @@ Le ricerche si aggiungono, consultano ed eliminano direttamente dalla chat.
    - [Senza Docker](#senza-docker)
 3. [Configurazione](#configurazione)
 4. [Uso del bot](#uso-del-bot)
-5. [Come funziona](#come-funziona)
-6. [Protezione anti-bot](#protezione-anti-bot)
-7. [Aggiornamento](#aggiornamento)
-8. [Backup e migrazione](#backup-e-migrazione)
-9. [Risoluzione dei problemi](#risoluzione-dei-problemi)
-10. [Sviluppo](#sviluppo)
+5. [Interfaccia web](#interfaccia-web)
+6. [Come funziona](#come-funziona)
+7. [Protezione anti-bot](#protezione-anti-bot)
+8. [Aggiornamento](#aggiornamento)
+9. [Backup e migrazione](#backup-e-migrazione)
+10. [Risoluzione dei problemi](#risoluzione-dei-problemi)
+11. [Sviluppo](#sviluppo)
 
 ---
 
@@ -67,6 +69,7 @@ L'immagine viene pubblicata su GitHub Container Registry, quindi l'installazione
 4. Premi **Install**.
 
 Il bot parte, crea la cartella dati `/DATA/AppData/subito-searcher/bindata/` e ti risponde su Telegram: invia `/help` per verificarlo.
+Il pulsante **Apri** dell'app nella dashboard porta all'[interfaccia web](#interfaccia-web) (`http://<ip-del-server>:8095`).
 I log sono nel menu dell'app (⋮ → **Logs**).
 
 > Hai già un `searches.tracked` da una vecchia installazione? Copialo in `/DATA/AppData/subito-searcher/bindata/` (con l'app **Files** di CasaOS o via SCP) e riavvia l'app.
@@ -92,6 +95,8 @@ oppure crea a mano `bindata/telegram_api_credentials` (formato nella [configuraz
 docker compose up -d            # scarica e avvia l'immagine pubblicata
 docker compose logs -f          # segue i log
 ```
+
+L'interfaccia web è su `http://<ip-del-server>:8095`.
 
 Per costruire l'immagine in locale invece di scaricarla: `docker compose up -d --build`.
 
@@ -123,6 +128,9 @@ I file di dati vengono letti e scritti nella **cartella da cui lanci lo script**
 | `TELEGRAM_TOKEN` | sì¹ | Token del bot fornito da BotFather |
 | `TELEGRAM_CHAT_ID` | sì¹ | Chat che riceve gli annunci e può usare i comandi |
 | `TZ` | no | Fuso orario per orari e log (nei compose: `Europe/Rome`) |
+| `WEBUI_PASSWORD` | no | Se impostata, l'interfaccia web chiede questa password (utente qualsiasi) |
+| `WEBUI_PORT` | no | Porta dell'interfaccia web dentro il container (default `8080`) |
+| `WEBUI_ENABLED` | no | `false` per disattivare l'interfaccia web |
 
 ¹ Obbligatorie se non esiste già il file `telegram_api_credentials`.
 
@@ -244,6 +252,38 @@ Il bot ti avvisa anche quando subito.it attiva la protezione anti-bot e quando u
 
 ---
 
+## Interfaccia web
+
+Una pagina web per gestire il bot dal browser, da PC o da telefono, senza passare da Telegram.
+Gira nello stesso container e nello stesso processo del bot e lavora sugli **stessi dati**: una ricerca aggiunta dal web compare subito in `/list` su Telegram, e viceversa.
+
+Indirizzo: `http://<ip-del-server>:8095` (in CasaOS: pulsante **Apri** dell'app).
+
+### Cosa puoi fare
+
+- **Monitorare**: stato dei controlli (attivo, in corso, in pausa, pausa anti-bot), numero di ricerche e di annunci memorizzati, ultimo e prossimo controllo. La pagina si aggiorna da sola ogni 10 secondi.
+- **Controlla ora**: avvia subito un giro di controlli (come `/refresh`); i nuovi annunci arrivano su Telegram.
+- **Pausa / Riprendi**: come `/pause` e `/resume`.
+- **Aggiungere** una ricerca: parole chiave o link di subito.it, prezzo minimo e massimo, nome (se lo lasci vuoto viene preso dalle parole cercate). Come da Telegram, gli annunci già online vengono memorizzati senza notifiche.
+- **Modificare** una ricerca: nome, link e prezzi.
+  - Se cambi **solo nome o prezzi**, gli annunci già visti restano e non ti vengono rinotificati.
+  - Se cambi il **link** (o le parole chiave), la ricerca riparte da capo: gli annunci attuali vengono riletti senza notifiche.
+- **Vedere gli annunci** memorizzati di una ricerca, dal più recente, con link, prezzo e località.
+- **Eliminare** una ricerca, con conferma.
+
+### Sicurezza
+
+- La pagina risponde **solo a indirizzi di rete locale** (192.168.x.x, 10.x.x.x, 172.16-31.x.x, localhost e gli equivalenti IPv6). Le richieste da indirizzi pubblici ricevono un errore 403 e finiscono nei log come `[WEBUI] refused connection`.
+- Con `WEBUI_PASSWORD` il browser chiede una password (utente qualsiasi). È consigliata se in rete locale ci sono dispositivi o persone di cui non ti fidi.
+- **Non pubblicarla su Internet tramite un reverse proxy** (Nginx Proxy Manager, Cloudflare Tunnel e simili): il proxy si collega da un indirizzo locale e il controllo sulla rete verrebbe aggirato. Se proprio ti serve, imposta almeno `WEBUI_PASSWORD` e usa HTTPS sul proxy. Per l'accesso da fuori casa è meglio una VPN.
+- Le operazioni che modificano i dati accettano solo richieste JSON, quindi un altro sito aperto nel browser non può inviarle al posto tuo.
+
+### Cambiare porta
+
+La porta pubblicata si cambia nel compose (`8095` in `ports`, e `port_map` in quello di CasaOS). Se cambi anche quella interna con `WEBUI_PORT`, aggiorna di conseguenza il `target` della porta.
+
+---
+
 ## Come funziona
 
 - Un thread in background esegue un **giro di controlli** ogni `pollDelay` secondi. Per ogni ricerca scarica la prima pagina dei risultati (circa 30 annunci, i più recenti) e legge i dati che subito.it inserisce nella pagina (`__NEXT_DATA__`).
@@ -310,6 +350,8 @@ Per spostare il bot su un altro server basta copiare `searches.tracked`.
 | `Bot detection triggered` nei log | Blocco anti-bot di subito.it: vedi [Protezione anti-bot](#protezione-anti-bot). |
 | `JSON path not found` nei log | subito.it ha cambiato la struttura della pagina: lo scraper va aggiornato (`run_query` in `app.py`). |
 | CasaOS: `pull access denied` | Il nome dell'immagine è sbagliato o il pacchetto su GHCR non è pubblico. |
+| L'interfaccia web non si apre | Controlla la porta (`8095`) e che nei log ci sia `Web UI running on port 8080`. Se nei log compare `Web UI not started`, la porta interna è occupata: cambia `WEBUI_PORT`. |
+| L'interfaccia web risponde "Accesso consentito solo dalla rete locale" | Ti stai collegando da un indirizzo pubblico (da fuori casa o tramite un proxy): usa la rete locale o una VPN. |
 | Il container si chiude con `InvalidToken` o `Unauthorized` | Token sbagliato o revocato: controllalo, o generane uno nuovo con BotFather (`/token`). |
 
 Dal terminale del server puoi anche scrivere nella chat del bot:
@@ -326,6 +368,7 @@ scrivi il testo e premi Invio. **Ctrl+C** ti stacca senza fermare il container (
 
 ```
 app.py                         bot, scraper e ciclo di controllo
+webui.py                       interfaccia web (thread nello stesso processo di app.py)
 requirements.txt               dipendenze Python
 Dockerfile                     immagine (python:3.13-slim)
 docker-compose.yml             avvio con Docker Compose
@@ -338,7 +381,7 @@ Il workflow GitHub Actions costruisce l'immagine per `linux/amd64` e `linux/arm6
 
 | Evento | Tag pubblicati |
 |---|---|
-| push su `main` che modifica `app.py`, `requirements.txt`, `Dockerfile` o il workflow | `latest`, `sha-<commit>` |
+| push su `main` che modifica `app.py`, `webui.py`, `requirements.txt`, `Dockerfile` o il workflow | `latest`, `sha-<commit>` |
 | tag git `vX.Y.Z` | `X.Y.Z`, `sha-<commit>` |
 | avvio manuale da **Actions** | `sha-<commit>` (e `latest` se lanciato su `main`) |
 

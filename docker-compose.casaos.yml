@@ -9,6 +9,13 @@ services:
       # al primo avvio creano bindata/telegram_api_credentials (e lo aggiornano se cambiano)
       TELEGRAM_TOKEN: ""
       TELEGRAM_CHAT_ID: ""
+      # facoltativa: password dell'interfaccia web (utente qualsiasi)
+      WEBUI_PASSWORD: ""
+    ports:
+      # interfaccia web, raggiungibile solo dalla rete locale
+      - target: 8080
+        published: "8095"
+        protocol: tcp
     volumes:
       # la cartella viene creata automaticamente se non esiste
       - /DATA/AppData/subito-searcher/bindata:/data
@@ -26,9 +33,16 @@ services:
         - container: TELEGRAM_CHAT_ID
           description:
             en_us: Telegram chat id that receives the listings
+        - container: WEBUI_PASSWORD
+          description:
+            en_us: Optional password for the web interface
         - container: TZ
           description:
             en_us: Time zone
+      ports:
+        - container: "8080"
+          description:
+            en_us: Web interface (local network only)
       volumes:
         - container: /data
           description:
@@ -46,5 +60,9 @@ x-casaos:
   tagline:
     en_us: Telegram bot for subito.it searches
   description:
-    en_us: Polls saved subito.it searches and sends new listings to Telegram.
+    en_us: Polls saved subito.it searches and sends new listings to Telegram. Web interface on the local network.
   project_url: https://github.com/marcoellecode/subito-searcher-telegram-bot
+  # pulsante "Apri" nella dashboard di CasaOS
+  port_map: "8095"
+  scheme: http
+  index: /
