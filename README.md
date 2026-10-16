@@ -6,10 +6,18 @@ Bot Telegram che controlla periodicamente le ricerche salvate su subito.it e inv
 
 | Comando | Descrizione |
 |---|---|
-| `/add <url> [nome] [prezzo_min] [prezzo_max]` | aggiunge una ricerca (usa `null` per saltare un prezzo) |
-| `/delete <nome>` | elimina una ricerca |
-| `/list` | elenca le ricerche con gli annunci trovati |
-| `/shortlist` | elenco compatto delle ricerche |
+| `/add` | procedura guidata: parole chiave o link, prezzo minimo, massimo, nome |
+| `/add <link> [nome] [min] [max]` | aggiunge una ricerca in una riga (`-` per saltare un prezzo) |
+| `/list` | le ricerche salvate, con pulsanti per vedere gli annunci o eliminarle |
+| `/items <nome>` | gli ultimi annunci memorizzati per una ricerca |
+| `/delete [nome]` | elimina una ricerca; senza nome mostra i pulsanti con conferma |
+| `/refresh` | controlla subito tutte le ricerche |
+| `/status` | ultimo e prossimo controllo, eventuale pausa |
+| `/pause` / `/resume` | sospende / riprende i controlli (`/resume` interrompe anche la pausa anti-bot) |
+| `/help` | guida |
+
+Incollare in chat un link di subito.it avvia direttamente la procedura guidata.
+Il bot risponde solo alla chat configurata in `TELEGRAM_CHAT_ID`; i messaggi da altre chat vengono ignorati.
 
 ## File di dati
 
