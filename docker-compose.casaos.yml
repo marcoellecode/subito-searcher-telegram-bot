@@ -1,0 +1,39 @@
+name: subito-searcher
+services:
+  subito-searcher:
+    # immagine costruita in locale sul server con: docker build -t subito-searcher:latest .
+    image: subito-searcher:latest
+    pull_policy: never
+    container_name: subito-searcher
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Rome
+    volumes:
+      - type: bind
+        source: /DATA/AppData/subito-searcher/bindata
+        target: /data
+    stdin_open: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    x-casaos:
+      volumes:
+        - container: /data
+          description:
+            en_us: searches.tracked and telegram_api_credentials
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: subito-searcher
+  author: self
+  developer: self
+  category: Utilities
+  title:
+    en_us: Subito Searcher
+  tagline:
+    en_us: Telegram bot for subito.it searches
+  description:
+    en_us: Polls saved subito.it searches and sends new listings to Telegram.

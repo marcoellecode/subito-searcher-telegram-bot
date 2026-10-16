@@ -1,0 +1,19 @@
+services:
+  subito-searcher:
+    build: .
+    image: subito-searcher:latest
+    container_name: subito-searcher
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Rome
+    volumes:
+      # qui vanno searches.tracked e telegram_api_credentials
+      - ./bindata:/data
+    # permette di scrivere in chat dal terminale con "docker attach subito-searcher"
+    # (per staccarsi senza fermare il container: Ctrl+P poi Ctrl+Q)
+    stdin_open: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

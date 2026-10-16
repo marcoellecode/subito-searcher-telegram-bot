@@ -1,0 +1,4 @@
+requests>=2.32
+curl_cffi>=0.15
+beautifulsoup4>=4.12
+python-telegram-bot>=22.0,<23

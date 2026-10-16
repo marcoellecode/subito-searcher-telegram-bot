@@ -1,0 +1,9 @@
+bindata/
+searches.tracked
+telegram_api_credentials
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git/
+.vscode/

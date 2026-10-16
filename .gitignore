@@ -1,0 +1,10 @@
+# dati e credenziali: restano solo sul server
+telegram_api_credentials
+searches.tracked
+bindata/
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
